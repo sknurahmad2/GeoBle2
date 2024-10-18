@@ -147,6 +147,23 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
             Toast.makeText(requireContext(), "Please allow location permission all the time", Toast.LENGTH_SHORT).show()
             ActivityCompat.requestPermissions(requireActivity(), permissionsToRequest.toTypedArray(), LOCATION_PERMISSION_CODE)
         } else {
+            requestNotification()
+        }
+    }
+
+    private fun requestNotification(){
+        val permissionsToRequest = mutableListOf<String>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if(ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED){
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            Toast.makeText(requireContext(), "Allow notification permission", Toast.LENGTH_SHORT).show()
+            ActivityCompat.requestPermissions(requireActivity(), permissionsToRequest.toTypedArray(), LOCATION_PERMISSION_CODE)
+        } else {
             isInternetAvailable()
         }
     }
