@@ -78,8 +78,8 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
             .registerReceiver(locationReceiver, IntentFilter("LocationUpdates"))
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onDestroy() {
+        super.onDestroy()
         // Stop location service when fragment is paused to save resources
         stopLocationService()
         // Unregister the broadcast receiver to avoid memory leaks
