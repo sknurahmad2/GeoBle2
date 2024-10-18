@@ -3,11 +3,9 @@ package com.example.geoble.fragments
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Context.CONNECTIVITY_SERVICE
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.os.Build
@@ -20,20 +18,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.location.LocationManagerCompat.isLocationEnabled
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.geoble.R
-import com.example.geoble.databinding.FragmentMyLocationBinding
 import com.example.geoble.services.LocationService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.tasks.Task
 import com.google.android.material.progressindicator.LinearProgressIndicator
 
 class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
-//    private var _binding: FragmentMyLocationBinding? = null
-//    private val binding get() = _binding!!
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var locationManager: LocationManager
@@ -44,7 +37,7 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
     private lateinit var latitudeTextView: TextView
     private lateinit var longitudeTextView: TextView
     private lateinit var loadingBar: LinearProgressIndicator
-    private lateinit var myButton : Button
+    private lateinit var myButton: Button
     private var isServiceStarted = false
 
     override fun onCreateView(
@@ -52,9 +45,8 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-//        _binding = FragmentMyLocationBinding.inflate(inflater, container, false)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
-        connectivityManager = requireContext().getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return inflater.inflate(R.layout.fragment_my_location, container, false)
     }
@@ -68,14 +60,11 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
         myButton = view.findViewById(R.id.myButton)
         loadingBar = view.findViewById(R.id.linearProgressIndicator)
 
-
         // Set up button click listener
         myButton.setOnClickListener {
-//          Toast.makeText(requireContext(),"My : ${Build.VERSION.SDK_INT} Q : ${Build.VERSION_CODES.Q}",Toast.LENGTH_LONG).show()
             loadingBar.visibility = View.VISIBLE
-            requestAllPermission()
+            requestAllPermissions()
         }
-
     }
 
     override fun onResume() {
@@ -91,16 +80,12 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
 
     override fun onPause() {
         super.onPause()
+        // Stop location service when fragment is paused to save resources
+        stopLocationService()
         // Unregister the broadcast receiver to avoid memory leaks
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(locationReceiver)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Unregister the broadcast receiver to avoid memory leaks
-        stopLocationService()
-        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(locationReceiver)
-    }
     private fun startLocationService() {
         val serviceIntent = Intent(requireContext(), LocationService::class.java)
         requireContext().startService(serviceIntent)
@@ -112,72 +97,105 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
         isServiceStarted = false
     }
 
-//     BroadcastReceiver to receive location updates from the service
+    // BroadcastReceiver to receive location updates from the service
     private val locationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val latitude = intent?.getDoubleExtra("latitude", 0.0)
-            val longitude = intent?.getDoubleExtra("longitude", 0.0)
+            val latitude = intent?.getDoubleExtra("latitude", Double.NaN)
+            val longitude = intent?.getDoubleExtra("longitude", Double.NaN)
 
             // Update the UI with received location data
-            loadingBar.visibility = View.INVISIBLE
-            latitudeTextView.text = "Latitude: $latitude"
-            longitudeTextView.text = "Longitude: $longitude"
+            if (latitude != null && !latitude.isNaN() && longitude != null && !longitude.isNaN()) {
+                latitudeTextView.text = "Latitude: $latitude"
+                longitudeTextView.text = "Longitude: $longitude"
+                loadingBar.visibility = View.INVISIBLE
+            } else {
+                loadingBar.visibility = View.INVISIBLE
+                Toast.makeText(requireContext(), "Failed to retrieve location", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    private fun requestAllPermission(){
-        var permissionToRequest = mutableListOf<String>()
+    private fun requestAllPermissions() {
+        val permissionsToRequest = mutableListOf<String>()
 
-        if(!hasCoarseLocationPermission()){
-            permissionToRequest.add(forgroundCoarseLocationPermission)
+        if (!hasCoarseLocationPermission()) {
+            permissionsToRequest.add(forgroundCoarseLocationPermission)
         }
 
-        if(!hasFineLocationPermission()){
-            permissionToRequest.add(forgroundFineLocationPermission)
+        if (!hasFineLocationPermission()) {
+            permissionsToRequest.add(forgroundFineLocationPermission)
         }
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasBackGroundLocationPermission()){
-            permissionToRequest.add(backgroundLocationPermission)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasBackGroundLocationPermission()) {
+            permissionsToRequest.add(backgroundLocationPermission)
         }
 
-        if(permissionToRequest.isNotEmpty()){
+        if (permissionsToRequest.isNotEmpty()) {
             // Request the permissions
-            ActivityCompat.requestPermissions(requireActivity(), permissionToRequest.toTypedArray(), LOCATION_PERMISSION_CODE)
-        }else{
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                permissionsToRequest.toTypedArray(),
+                LOCATION_PERMISSION_CODE
+            )
+        } else {
             isInternetAvailable()
         }
     }
 
-    private fun hasCoarseLocationPermission() : Boolean{
-        return ActivityCompat.checkSelfPermission(requireContext(),forgroundCoarseLocationPermission) ==
-                PackageManager.PERMISSION_GRANTED
+    private fun hasCoarseLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            forgroundCoarseLocationPermission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun hasFineLocationPermission() : Boolean{
-        return ActivityCompat.checkSelfPermission(requireContext(), forgroundFineLocationPermission) == PackageManager.PERMISSION_GRANTED
+    private fun hasFineLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            forgroundFineLocationPermission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun hasBackGroundLocationPermission() : Boolean{
-        return ActivityCompat.checkSelfPermission(requireContext(),backgroundLocationPermission) == PackageManager.PERMISSION_GRANTED
+    private fun hasBackGroundLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            backgroundLocationPermission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun isInternetAvailable() {
         val activeNetwork = connectivityManager.activeNetworkInfo
         if (activeNetwork != null && activeNetwork.isConnected) {
-            isLocationEnabled()
+            checkIfLocationEnabled()
         } else {
             Toast.makeText(requireContext(), "Turn on the internet", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun isLocationEnabled() {
-        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
-                LocationManager.NETWORK_PROVIDER
-            )
+    private fun checkIfLocationEnabled() {
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
         ) {
             startLocationService()
         } else {
             Toast.makeText(requireContext(), "Turn on the location", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Handle the result of the permission request
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, proceed with location request
+                isInternetAvailable()
+            } else {
+                Toast.makeText(requireContext(), "Location permission denied", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

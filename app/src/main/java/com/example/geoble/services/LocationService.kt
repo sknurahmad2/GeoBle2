@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationManager
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -54,6 +55,20 @@ class LocationService : Service() {
             fastestInterval = 5000
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
+
+        // Check for location services availability
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        val gpsProvider = locationManager.getProvider(LocationManager.GPS_PROVIDER)
+        val networkProvider = locationManager.getProvider(LocationManager.NETWORK_PROVIDER)
+
+        if (gpsProvider == null || !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            networkProvider == null || !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            // Handle disabled location services
+            Toast.makeText(this, "Location services are disabled. Please enable them.", Toast.LENGTH_LONG).show()
+            stopSelf() // Stops the service if location services are disabled
+            return
+        }
+
         // Check for location permissions
         if (!hasLocationPermissions()) {
             // Permission not granted, stop the service or handle gracefully
@@ -62,7 +77,15 @@ class LocationService : Service() {
         }
 
         // Request location updates
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        try {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        } catch (e: SecurityException) {
+            // Handle security exception (e.g., log error, display a message)
+            Toast.makeText(this, "Location permission denied.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            // Handle other exceptions (e.g., log error, display a message)
+            Toast.makeText(this, "Failed to request location updates.", Toast.LENGTH_LONG).show()
+        }
     }
 
     // Function to check if location permissions are granted

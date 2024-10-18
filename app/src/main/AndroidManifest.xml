@@ -1,22 +1,26 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Network and Location Permissions -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Only needed for Android 12+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" tools:targetApi="31" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
+    <!-- Bluetooth Permissions -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
+    <!-- Android 13+ Permission for Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:targetApi="33" />
 
     <application
         android:allowBackup="true"
@@ -28,24 +32,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GeoBle"
         tools:targetApi="31">
+
         <activity
             android:name=".activities.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- Add the DeviceDetailsActivity declaration here -->
+
         <activity
             android:name=".activities.DeviceDetailsActivity"
             android:exported="true" />
+
         <service
             android:name=".services.LocationService"
             android:foregroundServiceType="location"
-            android:permission="android.permission.FOREGROUND_SERVICE"
-            tools:ignore="ForegroundServicePermission" />
+            android:permission="android.permission.FOREGROUND_SERVICE" />
     </application>
-
 </manifest>
