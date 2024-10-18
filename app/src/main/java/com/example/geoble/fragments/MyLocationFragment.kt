@@ -30,7 +30,7 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var locationManager: LocationManager
-    private val LOCATION_PERMISSION_CODE = 1001
+    private val LOCATION_PERMISSION_CODE = 1000
     private val forgroundCoarseLocationPermission = Manifest.permission.ACCESS_COARSE_LOCATION
     private val forgroundFineLocationPermission = Manifest.permission.ACCESS_FINE_LOCATION
     private val backgroundLocationPermission = Manifest.permission.ACCESS_BACKGROUND_LOCATION
@@ -62,14 +62,13 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
 
         // Set up button click listener
         myButton.setOnClickListener {
-            loadingBar.visibility = View.VISIBLE
+//            loadingBar.visibility = View.VISIBLE
             requestAllPermissions()
         }
     }
-
     override fun onResume() {
         super.onResume()
-        if (!isServiceStarted) {
+        if (isServiceStarted) {
             loadingBar.visibility = View.VISIBLE
             startLocationService()
             isServiceStarted = true
@@ -125,18 +124,28 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
         if (!hasFineLocationPermission()) {
             permissionsToRequest.add(forgroundFineLocationPermission)
         }
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasBackGroundLocationPermission()) {
+//            permissionsToRequest.add(backgroundLocationPermission)
+//        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(requireActivity(), permissionsToRequest.toTypedArray(), LOCATION_PERMISSION_CODE)
+        } else {
+            requestBackgroundLocation()
+        }
+    }
+
+    private fun requestBackgroundLocation(){
+        val permissionsToRequest = mutableListOf<String>()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasBackGroundLocationPermission()) {
             permissionsToRequest.add(backgroundLocationPermission)
         }
 
         if (permissionsToRequest.isNotEmpty()) {
-            // Request the permissions
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                permissionsToRequest.toTypedArray(),
-                LOCATION_PERMISSION_CODE
-            )
+            Toast.makeText(requireContext(), "Please allow location permission all the time", Toast.LENGTH_SHORT).show()
+            ActivityCompat.requestPermissions(requireActivity(), permissionsToRequest.toTypedArray(), LOCATION_PERMISSION_CODE)
         } else {
             isInternetAvailable()
         }
@@ -176,6 +185,9 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
             locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
         ) {
+            Toast.makeText(requireContext(), "Please wait for few seconds...", Toast.LENGTH_SHORT)
+                .show()
+            loadingBar.visibility = View.VISIBLE
             startLocationService()
         } else {
             Toast.makeText(requireContext(), "Turn on the location", Toast.LENGTH_SHORT).show()
