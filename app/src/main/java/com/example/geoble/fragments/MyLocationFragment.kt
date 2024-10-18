@@ -199,14 +199,14 @@ class MyLocationFragment : Fragment(R.layout.fragment_my_location) {
     }
 
     private fun checkIfLocationEnabled() {
-        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         ) {
             Toast.makeText(requireContext(), "Please wait for few seconds...", Toast.LENGTH_SHORT)
                 .show()
             loadingBar.visibility = View.VISIBLE
             startLocationService()
         } else {
+            loadingBar.visibility = View.INVISIBLE
             Toast.makeText(requireContext(), "Turn on the location", Toast.LENGTH_SHORT).show()
         }
     }
